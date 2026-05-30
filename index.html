@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Web Yêu Cầu Mua Hàng | Quản Lý Mua Sắm</title>
+  <meta name="description" content="Hệ thống quản lý yêu cầu mua hàng trực tuyến, đồng bộ realtime với Supabase." />
+  <link rel="stylesheet" href="style.css?v=29" />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <!-- SheetJS -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- Config -->
+  <script src="config.js?v=29"></script>
+</head>
+<body>
+
+<div class="app-layout">
+
+  <!-- ── SIDEBAR ── -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">🛒</div>
+      <div class="logo-title">Quản Lý<br>Mua Hàng</div>
+      <div class="logo-sub">Hệ thống yêu cầu mua hàng</div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-label">Menu</div>
+      <button class="nav-item active" id="nav-dashboard" onclick="navigate('dashboard')">
+        <span class="nav-icon">📊</span> Dashboard
+      </button>
+      <button class="nav-item" id="nav-list" onclick="navigate('list')">
+        <span class="nav-icon">📋</span> Danh Sách YC Mua Hàng
+        <span class="nav-badge" id="navPendingBadge" style="display:none">0</span>
+      </button>
+      <button class="nav-item" id="nav-approved" onclick="navigate('approved')">
+        <span class="nav-icon">🟢</span> Danh Sách Đã Duyệt
+      </button>
+
+      <div class="nav-label" style="margin-top:16px">Thao Tác</div>
+      <button class="nav-item" onclick="openAddModal()">
+        <span class="nav-icon">➕</span> Thêm Yêu Cầu Mới
+      </button>
+      <button class="nav-item" onclick="triggerExcelImport()">
+        <span class="nav-icon">📤</span> Nhập từ Excel
+      </button>
+      <button class="nav-item" onclick="exportCSV()">
+        <span class="nav-icon">📥</span> Xuất File CSV
+      </button>
+      <button class="nav-item" onclick="window.print()">
+        <span class="nav-icon">🖨️</span> In Danh Sách
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="realtime-badge">
+        <div class="realtime-dot"></div>
+        <span class="realtime-text">Đang kết nối...</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── MAIN ── -->
+  <main class="main-content">
+
+    <!-- Top Bar -->
+    <div class="topbar">
+      <span class="topbar-title" id="topbarTitle">📊 Dashboard Tổng Quan</span>
+      <div class="topbar-actions">
+        <button class="btn btn-primary btn-sm" onclick="openAddModal()">➕ Thêm Yêu Cầu</button>
+      </div>
+    </div>
+
+    <!-- ════════ PAGE: DASHBOARD ════════ -->
+    <div class="page active" id="page-dashboard">
+
+      <!-- KPI Cards -->
+      <div class="kpi-grid">
+        <div class="kpi-card blue">
+          <div class="kpi-label">Tổng yêu cầu</div>
+          <div class="kpi-value" id="kpiTotal">—</div>
+          <div class="kpi-sub">Tất cả thời gian</div>
+          <div class="kpi-icon">📋</div>
+        </div>
+        <div class="kpi-card yellow">
+          <div class="kpi-label">Chờ duyệt</div>
+          <div class="kpi-value" id="kpiPending">—</div>
+          <div class="kpi-sub">Cần xử lý</div>
+          <div class="kpi-icon">⏳</div>
+        </div>
+        <div class="kpi-card green">
+          <div class="kpi-label">Đã duyệt</div>
+          <div class="kpi-value" id="kpiApproved">—</div>
+          <div class="kpi-sub">Đã phê duyệt</div>
+          <div class="kpi-icon">✅</div>
+        </div>
+        <div class="kpi-card red">
+          <div class="kpi-label">Tổng giá trị</div>
+          <div class="kpi-value" id="kpiValue" style="font-size:20px">—</div>
+          <div class="kpi-sub">Tất cả yêu cầu</div>
+          <div class="kpi-icon">💰</div>
+        </div>
+      </div>
+
+      <!-- Charts -->
+      <div class="charts-grid">
+        <div class="chart-card">
+          <div class="chart-title">📈 Yêu Cầu Theo Tháng</div>
+          <div class="chart-container">
+            <canvas id="barChart"></canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">🗂️ Phân Bổ Trạng Thái</div>
+          <div class="chart-container">
+            <canvas id="doughnutChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick List (last 5) -->
+      <div class="section-header">
+        <div class="section-title">🕐 Yêu Cầu Gần Đây</div>
+        <button class="btn btn-secondary btn-sm" onclick="navigate('list')">Xem tất cả →</button>
+      </div>
+      <div class="table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Người YC</th>
+              <th>Tên Hàng</th>
+              <th>Thành Tiền</th>
+              <th>Ưu Tiên</th>
+              <th>Trạng Thái</th>
+            </tr>
+          </thead>
+          <tbody id="recentTableBody">
+            <tr><td colspan="5"><div class="loading"><div class="spinner"></div> Đang tải...</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ════════ PAGE: DANH SÁCH ════════ -->
+    <div class="page" id="page-list">
+
+      <!-- Section header -->
+      <div class="section-header">
+        <div class="section-title">
+          <span id="listTitleText">📋 Danh Sách Yêu Cầu Mua Hàng</span>
+          <span class="count-badge" id="countBadge">0 yêu cầu</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn btn-sm" id="btnBulkApprove" style="display:none; background:var(--green); color:white; border:none; padding:6px 12px; font-weight:600" onclick="bulkApprove()">🟢 Duyệt đã chọn (<span id="selectedCount">0</span>)</button>
+          <button class="btn btn-sm" id="btnBulkUnapprove" style="display:none; background:#d29922; color:white; border:none; padding:6px 12px; font-weight:600" onclick="bulkUnapprove()">🟡 Hủy duyệt đã chọn (<span id="selectedCountUnapprove">0</span>)</button>
+          <button class="btn btn-sm btn-danger" id="btnBulkDelete" style="display:none; padding:6px 12px; font-weight:600" onclick="bulkDelete()">🗑️ Xóa đã chọn (<span id="selectedCountDelete">0</span>)</button>
+        </div>
+      </div>
+
+
+      <!-- Filter info bar with summary -->
+      <div class="filter-info" id="filterInfo">
+        <div class="filter-info-left">
+          <span id="filterActiveText" style="display:none">⚡ Đang lọc: <strong id="filterInfoText"></strong></span>
+        </div>
+        
+        <!-- Box 1: Requested Amount (above Unit Price & Total Price) -->
+        <div class="filter-info-summary summary-req" id="summaryBoxReq" onclick="handleReqBoxClick()">
+          <span class="summary-label">Tổng số tiền yêu cầu mua:</span>
+          <span class="summary-value highlight-yellow" id="summaryTotalAmount">0 đ</span>
+        </div>
+        
+        <!-- Spacer matching "Ưu Tiên" column -->
+        <div class="filter-info-spacer-mid"></div>
+        
+        <!-- Box 2: Approved Amount (above Status & Purpose) -->
+        <div class="filter-info-summary summary-app" id="summaryBoxApp" onclick="handleAppBoxClick()">
+          <span class="summary-label">Tổng số tiền duyệt mua:</span>
+          <span class="summary-value highlight-green" id="summaryApprovedAmount">0 đ</span>
+        </div>
+        
+        <!-- Spacer matching "Hành Động" & "Chọn" columns -->
+        <div class="filter-info-spacer-right"></div>
+        
+        <div class="filter-info-actions">
+          <button class="filter-info-clear" id="btnClearFilters" style="display:none" onclick="clearAllFilters()">✕ Xóa lọc</button>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th><div class="header-filter-wrapper"><span>Ngày YC</span><div class="custom-filter-dropdown" data-field="ngay_yc"><span class="filter-icon">🔍</span><div class="filter-options-list"><div class="filter-option active" data-value="">Lọc...</div></div></div></div></th>
+              <th><div class="header-filter-wrapper"><span>Người YC</span><div class="custom-filter-dropdown" data-field="nguoi_yc"><span class="filter-icon">🔍</span><div class="filter-options-list"><div class="filter-option active" data-value="">Lọc...</div></div></div></div></th>
+              <th><div class="header-filter-wrapper"><span>Tên Hàng / Vật Tư</span><div class="custom-filter-dropdown" data-field="ten_hang"><span class="filter-icon">🔍</span><div class="filter-options-list"><div class="filter-option active" data-value="">Lọc...</div></div></div></div></th>
+              <th style="text-align:right">Số Lượng</th>
+              <th><div class="header-filter-wrapper"><span>Đơn Vị Tính</span><div class="custom-filter-dropdown" data-field="don_vi"><span class="filter-icon">🔍</span><div class="filter-options-list"><div class="filter-option active" data-value="">Lọc...</div></div></div></div></th>
+              <th style="text-align:right">Đơn Giá</th>
+              <th style="text-align:right">Thành Tiền</th>
+              <th>
+                <div class="header-filter-wrapper">
+                  <span>Ưu Tiên</span>
+                  <div class="custom-filter-dropdown" data-field="uu_tien">
+                    <span class="filter-icon">🔍</span>
+                    <div class="filter-options-list">
+                      <div class="filter-option active" data-value="">Lọc...</div>
+                      <div class="filter-option" data-value="Cao">Cao</div>
+                      <div class="filter-option" data-value="Trung bình">Trung bình</div>
+                      <div class="filter-option" data-value="Thấp">Thấp</div>
+                    </div>
+                  </div>
+                </div>
+              </th>
+              <th>Trạng Thái</th>
+              <th><div class="header-filter-wrapper"><span>Mục Đích Sử Dụng</span><div class="custom-filter-dropdown" data-field="muc_dich"><span class="filter-icon">🔍</span><div class="filter-options-list"><div class="filter-option active" data-value="">Lọc...</div></div></div></div></th>
+              <th>Hành Động</th>
+              <th style="width:100px;text-align:center"><label style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700" title="Chọn tất cả / Bỏ chọn tất cả"><input type="checkbox" id="selectAll" onclick="toggleSelectAll(this)" /> Chọn</label></th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <tr><td colspan="13"><div class="loading"><div class="spinner"></div> Đang tải dữ liệu từ Supabase...</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ════════ MODAL: THÊM / SỬA ════════ -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">➕ Thêm Yêu Cầu Mua Hàng</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="formModal" onsubmit="return false;">
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Mã Yêu Cầu *</label>
+            <input class="form-control" id="fieldMaYc" placeholder="YC-001" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Ngày Yêu Cầu *</label>
+            <input type="date" class="form-control" id="fieldNgayYc" required />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Người Yêu Cầu</label>
+            <input class="form-control" id="fieldNguoiYc" placeholder="Nguyễn Văn A" />
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Tên Hàng / Vật Tư *</label>
+            <input class="form-control" id="fieldTenHang" placeholder="Nhập tên hàng hóa, vật tư..." required />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Đơn Vị Tính</label>
+            <select class="form-control" id="fieldDonVi">
+              <option>Cái</option><option>Bộ</option><option>Hộp</option>
+              <option>Cuộn</option><option>Kg</option><option>Lít</option>
+              <option>Mét</option><option>Ream</option><option>Thùng</option><option>Chiếc</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Số Lượng</label>
+            <input type="number" class="form-control" id="fieldSoLuong" min="0.01" step="0.01" value="1" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Đơn Giá (đ)</label>
+            <input type="number" class="form-control" id="fieldDonGia" min="0" step="1000" value="0" placeholder="0" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Ưu Tiên</label>
+            <select class="form-control" id="fieldUuTien">
+              <option>Cao</option>
+              <option selected>Trung bình</option>
+              <option>Thấp</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Trạng Thái</label>
+            <select class="form-control" id="fieldTrangThai">
+              <option>Chờ duyệt</option>
+              <option>Đã duyệt</option>
+            </select>
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Mục Đích Sử Dụng</label>
+            <textarea class="form-control" id="fieldMucDich" placeholder="Mô tả mục đích sử dụng..."></textarea>
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Ghi Chú</label>
+            <textarea class="form-control" id="fieldGhiChu" placeholder="Ghi chú thêm (nếu có)..."></textarea>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Hủy</button>
+      <button class="btn btn-primary" id="btnSave" onclick="saveForm()">💾 Lưu</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ MODAL: XÁC NHẬN XÓA ════════ -->
+<div class="modal-overlay" id="deleteOverlay">
+  <div class="modal confirm-modal">
+    <div class="modal-header">
+      <div class="modal-title">Xác Nhận Xóa</div>
+      <button class="modal-close" onclick="closeDeleteModal()">✕</button>
+    </div>
+    <div class="confirm-body">
+      <div class="confirm-icon">🗑️</div>
+      <h3>Bạn có chắc muốn xóa?</h3>
+      <p>Yêu cầu "<strong id="deleteItemName"></strong>" sẽ bị xóa vĩnh viễn khỏi hệ thống và không thể khôi phục.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeDeleteModal()">Hủy</button>
+      <button class="btn btn-danger" id="btnConfirmDelete" onclick="doDelete()">🗑️ Xóa</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Hidden input for Excel Import -->
+<input type="file" id="excelFileInput" accept=".xlsx, .xls" style="display:none" onchange="importExcel(event)" />
+
+<script src="app.js?v=29"></script>
+<script>
+  // Update recent table on dashboard after load
+  const _origLoadData = loadData;
+  loadData = async function() {
+    await _origLoadData();
+    // Render recent 5 rows on dashboard
+    const tbody = document.getElementById('recentTableBody');
+    if (!tbody) return;
+    const recent = allData.slice(0, 5);
+    if (recent.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state" style="padding:30px"><div class="empty-icon">📭</div><p>Chưa có dữ liệu</p></div></td></tr>`;
+      return;
+    }
+    const STATUS_CONFIG_LOCAL = {
+      'Chờ duyệt': { badge: 'badge-yellow', icon: '🟡' },
+      'Đã duyệt':  { badge: 'badge-green',  icon: '🟢' },
+      'Đã mua':    { badge: 'badge-green',  icon: '🟢' },
+    };
+    const PRIORITY_CONFIG_LOCAL = {
+      'Cao':        { cls: 'priority-high',   icon: '🔺' },
+      'Trung bình': { cls: 'priority-medium', icon: '🔸' },
+      'Thường':     { cls: 'priority-medium', icon: '🔸' },
+      'Thấp':       { cls: 'priority-low',    icon: '🔹' },
+    };
+    tbody.innerHTML = recent.map(r => {
+      const sc = STATUS_CONFIG_LOCAL[r.trang_thai] || { badge: 'badge-yellow', icon: '⚪' };
+      const pc = PRIORITY_CONFIG_LOCAL[r.uu_tien] || { cls: '', icon: '' };
+      const fmtD = d => d ? new Date(d).toLocaleDateString('vi-VN') : '—';
+      const fmtN = n => new Intl.NumberFormat('vi-VN').format(n || 0) + ' đ';
+      return `<tr>
+        <td class="muted">${r.nguoi_yc||'—'}</td>
+        <td>${r.ten_hang||'—'}</td>
+        <td class="currency">${fmtN(r.thanh_tien)}</td>
+        <td><span class="${pc.cls}">${pc.icon} ${r.uu_tien||'—'}</span></td>
+        <td><span class="badge ${sc.badge}">${sc.icon} ${r.trang_thai||'—'}</span></td>
+      </tr>`;
+    }).join('');
+  };
+</script>
+</body>
+</html>
