@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Web Yêu Cầu Mua Hàng | Quản Lý Mua Sắm</title>
   <meta name="description" content="Hệ thống quản lý yêu cầu mua hàng trực tuyến, đồng bộ realtime với Supabase." />
-  <link rel="stylesheet" href="style.css?v=55" />
+  <link rel="stylesheet" href="style.css?v=57" />
 
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -19,7 +19,7 @@
   <!-- SheetJS -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- Config -->
-  <script src="config.js?v=55"></script>
+  <script src="config.js?v=57"></script>
 </head>
 <body>
 
@@ -50,8 +50,11 @@
         <svg class="sidebar-svg-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> Danh Sách Đã Duyệt
         <span class="nav-badge nav-badge-green" id="navApprovedBadge" style="display:none">0</span>
       </button>
+    </nav>
 
-      <div class="nav-label" style="margin-top:16px">Thao Tác</div>
+    <!-- Thao Tác Section Moved to Bottom -->
+    <div class="sidebar-actions" style="border-top: 1px solid rgba(255,255,255,0.06); padding: 12px 8px 4px;">
+      <div class="nav-label" style="margin-top:0">Thao Tác</div>
       <button class="nav-item" onclick="openAddModal()">
         <svg class="sidebar-svg-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg> Thêm Yêu Cầu Mới
       </button>
@@ -64,7 +67,7 @@
       <button class="nav-item" onclick="window.print()">
         <svg class="sidebar-svg-icon print-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg> In Danh Sách
       </button>
-    </nav>
+    </div>
 
     <div class="sidebar-footer">
       <div class="realtime-badge">
@@ -459,7 +462,7 @@
 <!-- Hidden input for Excel Import -->
 <input type="file" id="excelFileInput" accept=".xlsx, .xls" style="display:none" onchange="importExcel(event)" />
 
-<script src="app.js?v=55"></script>
+<script src="app.js?v=57"></script>
 <script>
   // Update recent table on dashboard after load
   const _origLoadData = loadData;

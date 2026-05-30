@@ -1139,7 +1139,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 .currency { color: var(--green); font-weight: 600; white-space: nowrap; }
 
 /* ── Responsive ── */
-@media (max-width: 900px) {
+@media screen and (max-width: 900px) {
   .btn-sidebar-toggle { display: inline-block; }
   .sidebar { transform: translateX(-100%); }
   .sidebar.open { transform: translateX(0); }
@@ -1149,7 +1149,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
   .form-group.full { grid-column: 1; }
 }
 
-@media (max-width: 600px) {
+@media screen and (max-width: 600px) {
   .kpi-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
   .kpi-card { padding: 12px 14px; }
   .kpi-value { font-size: 20px; }
@@ -1290,7 +1290,8 @@ textarea.form-control { resize: vertical; min-height: 80px; }
   .btn,
   .action-group,
   .realtime-badge,
-  .toast-container {
+  .toast-container,
+  .floating-selected-box {
     display: none !important;
   }
 
@@ -1660,7 +1661,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 }
 
 /* ── Mobile Responsive Card Layout (Screen <= 768px) ── */
-@media (max-width: 768px) {
+@media screen and (max-width: 768px) {
   #page-list .table-wrapper {
     background: transparent !important;
     border: none !important;
