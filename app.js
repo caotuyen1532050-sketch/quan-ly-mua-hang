@@ -440,7 +440,7 @@ function renderTable() {
       }
     }
 
-    tbody.innerHTML = `<tr><td colspan="13">
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="13">
       <div class="empty-state">
         <div class="empty-icon">📭</div>
         <h3>${emptyTitle}</h3>
