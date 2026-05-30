@@ -91,6 +91,21 @@ function navigate(page) {
   if (targetPage === 'list') {
     applyFilters();
   }
+
+  // Close sidebar on mobile after navigating
+  const sidebar = $('sidebar');
+  if (sidebar) {
+    sidebar.classList.remove('open');
+  }
+}
+
+// ── Mobile Sidebar Toggle ──
+function toggleSidebar(e) {
+  if (e) e.stopPropagation();
+  const sidebar = $('sidebar');
+  if (sidebar) {
+    sidebar.classList.toggle('open');
+  }
 }
 
 // ── Load Data from Supabase ──
@@ -398,11 +413,38 @@ function renderTable() {
   updateSummaryTotals();
 
   if (filteredData.length === 0) {
+    let emptyTitle = 'Không có dữ liệu';
+    let emptySub = 'Thêm yêu cầu mua hàng mới hoặc thay đổi bộ lọc';
+
+    // Kiểm tra bộ lọc tìm kiếm/cột có đang hoạt động hay không
+    let hasActiveFilters = false;
+    document.querySelectorAll('.custom-filter-dropdown').forEach(dropdown => {
+      const activeOpt = dropdown.querySelector('.filter-option.active');
+      const val = activeOpt ? activeOpt.getAttribute('data-value') : '';
+      if (val) hasActiveFilters = true;
+    });
+
+    if (!hasActiveFilters) {
+      const isListView = $('nav-list')?.classList.contains('active');
+      const isApprovedView = $('nav-approved')?.classList.contains('active');
+      
+      const hasPending = allData.some(r => r.trang_thai === 'Chờ duyệt');
+      const hasApproved = allData.some(r => r.trang_thai === 'Đã duyệt');
+
+      if (isListView && hasApproved && !hasPending) {
+        emptyTitle = '🎉 Tất cả yêu cầu đã được duyệt!';
+        emptySub = 'Không còn yêu cầu nào chờ duyệt. Dữ liệu đã chuyển sang tab <strong>🟢 Danh Sách Đã Duyệt</strong> ở menu bên trái.';
+      } else if (isApprovedView && hasPending && !hasApproved) {
+        emptyTitle = '🟢 Chưa có yêu cầu nào được duyệt';
+        emptySub = 'Vui lòng kiểm tra và duyệt các yêu cầu mua hàng tại tab <strong>📋 Danh Sách YC Mua Hàng</strong>.';
+      }
+    }
+
     tbody.innerHTML = `<tr><td colspan="13">
       <div class="empty-state">
         <div class="empty-icon">📭</div>
-        <h3>Không có dữ liệu</h3>
-        <p>Thêm yêu cầu mua hàng mới hoặc thay đổi bộ lọc</p>
+        <h3>${emptyTitle}</h3>
+        <p>${emptySub}</p>
       </div>
     </td></tr>`;
     
@@ -1103,13 +1145,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (e.target === $('deleteOverlay')) closeDeleteModal();
   });
 
-  // Đóng status / priority dropdown khi click ra ngoài
+  // Đóng status / priority dropdown & mobile sidebar khi click ra ngoài
   document.addEventListener('click', e => {
     if (activeDropdown && !e.target.closest('.status-dropdown') && !e.target.closest('.badge.clickable')) {
       closeStatusDropdown();
     }
     if (activePriorityDropdown && !e.target.closest('.priority-dropdown') && !e.target.closest('.badge-priority.clickable')) {
       closePriorityDropdown();
+    }
+    
+    // Mobile sidebar click outside logic
+    const sidebar = $('sidebar');
+    const toggleBtn = $('sidebarToggle');
+    if (sidebar && sidebar.classList.contains('open')) {
+      if (!sidebar.contains(e.target) && e.target !== toggleBtn) {
+        sidebar.classList.remove('open');
+      }
     }
   });
   
