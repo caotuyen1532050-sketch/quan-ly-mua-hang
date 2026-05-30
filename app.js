@@ -22,9 +22,9 @@ let activeBadge = null;
 
 // ── Status config ──
 const STATUS_CONFIG = {
-  'Chờ duyệt': { badge: 'badge-yellow', icon: '🟡' },
-  'Đã duyệt':  { badge: 'badge-green',  icon: '🟢' },
-  'Đã mua':    { badge: 'badge-green',  icon: '🟢' },
+  'Chờ duyệt': { badge: 'badge-yellow', icon: '⏳' },
+  'Đã duyệt':  { badge: 'badge-green',  icon: '✔️' },
+  'Đã mua':    { badge: 'badge-green',  icon: '🛒' },
 };
 
 const PRIORITY_CONFIG = {
@@ -72,7 +72,7 @@ function navigate(page) {
   const topbarTitleText = {
     dashboard: '📊 Dashboard Tổng Quan',
     list: '📋 Danh Sách Yêu Cầu Mua Hàng',
-    approved: '🟢 Danh Sách Hàng Đã Duyệt',
+    approved: '✅ Danh Sách Hàng Đã Duyệt',
   }[page] || 'Trang chủ';
 
   $('topbarTitle').textContent = topbarTitleText;
@@ -80,7 +80,7 @@ function navigate(page) {
   // Update section title text dynamically for printing
   const listTitleText = {
     list: '📋 Danh Sách Yêu Cầu Mua Hàng',
-    approved: '🟢 Danh Sách Hàng Đã Duyệt',
+    approved: '✅ Danh Sách Hàng Đã Duyệt',
   }[page];
   const listTitleEl = $('listTitleText');
   if (listTitleEl && listTitleText) {
@@ -153,7 +153,7 @@ function populateColumnFilters() {
       }).filter(v => v !== ''))).sort();
     }
 
-    listEl.innerHTML = `<div class="filter-option${currentVal === '' ? ' active' : ''}" data-value="">Lọc...</div>` + 
+    listEl.innerHTML = `<div class="filter-option${currentVal === '' ? ' active' : ''}" data-value="">Hủy lọc</div>` + 
       uniqueVals.map(val => `<div class="filter-option${currentVal === val ? ' active' : ''}" data-value="${val}">${val}</div>`).join('');
 
     // Attach click event listeners
@@ -243,24 +243,22 @@ function applyFilters() {
   const shown = filteredData.length;
   if ($('countBadge')) $('countBadge').textContent = shown + ' yêu cầu';
 
-  // Show/hide filter active details and clear button inside the always-visible filterInfo bar
+  // Show/hide filter active details and clear button inside the separate active-filters-bar
   const isFiltered = Object.keys(selectFilters).length > 0;
-  const activeTextEl = $('filterActiveText');
-  const clearBtnEl = $('btnClearFilters');
+  const activeFiltersBar = $('activeFiltersBar');
   if (isFiltered) {
-    if (activeTextEl) {
-      activeTextEl.style.display = 'inline';
-      const parts = [];
-      Object.keys(selectFilters).forEach(field => {
-        const labels = { ngay_yc: 'Ngày YC', nguoi_yc: 'Người YC', ten_hang: 'Tên Hàng', don_vi: 'ĐVT', uu_tien: 'Ưu tiên', muc_dich: 'Mục đích' };
-        parts.push(`${labels[field] || field}: <strong>${selectFilters[field]}</strong>`);
-      });
-      $('filterInfoText').innerHTML = parts.join(' · ') + ' — Hiển thị <strong>' + shown + '</strong>/' + total + ' yêu cầu';
+    if (activeFiltersBar) activeFiltersBar.style.display = 'flex';
+    const parts = [];
+    Object.keys(selectFilters).forEach(field => {
+      const labels = { ngay_yc: 'Ngày YC', nguoi_yc: 'Người YC', ten_hang: 'Tên Hàng', don_vi: 'ĐVT', uu_tien: 'Ưu tiên', muc_dich: 'Mục đích' };
+      parts.push(`${labels[field] || field}: <strong>${selectFilters[field]}</strong>`);
+    });
+    const infoTextEl = $('filterInfoText');
+    if (infoTextEl) {
+      infoTextEl.innerHTML = parts.join(' · ') + ' — Hiển thị <strong>' + shown + '</strong>/' + total + ' yêu cầu';
     }
-    if (clearBtnEl) clearBtnEl.style.display = 'inline-block';
   } else {
-    if (activeTextEl) activeTextEl.style.display = 'none';
-    if (clearBtnEl) clearBtnEl.style.display = 'none';
+    if (activeFiltersBar) activeFiltersBar.style.display = 'none';
   }
 }
 
@@ -287,6 +285,17 @@ function renderDashboard() {
       navBadge.style.display = 'inline-block';
     } else {
       navBadge.style.display = 'none';
+    }
+  }
+
+  // Cập nhật huy hiệu thông báo số lượng đã duyệt ở sidebar
+  const navAppBadge = $('navApprovedBadge');
+  if (navAppBadge) {
+    if (approved > 0) {
+      navAppBadge.textContent = approved;
+      navAppBadge.style.display = 'inline-block';
+    } else {
+      navAppBadge.style.display = 'none';
     }
   }
 
@@ -387,15 +396,22 @@ function updateSummaryTotals() {
     .filter(r => r.trang_thai === 'Chờ duyệt')
     .reduce((sum, item) => sum + (item.thanh_tien || 0), 0);
 
-  // Approved amount = sum of currently selected/checked rows on screen
+  // Approved amount: in approved list view, show the total sum of all approved items matching filters.
+  // In the pending list view, show the sum of currently selected/checked rows.
   let totalApprovedAmount = 0;
-  document.querySelectorAll('.row-checkbox:checked').forEach(cb => {
-    const id = cb.dataset.id;
-    const r = allData.find(x => x.id === id);
-    if (r) {
-      totalApprovedAmount += (r.thanh_tien || 0);
-    }
-  });
+  if (currentView === 'approved') {
+    totalApprovedAmount = columnFilteredData
+      .filter(r => r.trang_thai === 'Đã duyệt')
+      .reduce((sum, item) => sum + (item.thanh_tien || 0), 0);
+  } else {
+    document.querySelectorAll('.row-checkbox:checked').forEach(cb => {
+      const id = cb.dataset.id;
+      const r = allData.find(x => x.id === id);
+      if (r) {
+        totalApprovedAmount += (r.thanh_tien || 0);
+      }
+    });
+  }
 
   const summaryAmountEl = $('summaryTotalAmount');
   const summaryApprovedEl = $('summaryApprovedAmount');
@@ -471,8 +487,8 @@ function renderTable() {
           <span class="badge ${sc.badge} clickable" onclick="toggleStatus('${r.id}', '${r.trang_thai || 'Chờ duyệt'}')">${sc.icon} ${r.trang_thai || '—'}</span>
           <div class="status-dropdown-list">
             ${r.trang_thai === 'Chờ duyệt' 
-              ? `<div class="status-option" onclick="updateStatus('${r.id}', 'Đã duyệt')">🟢 Đã duyệt</div>`
-              : `<div class="status-option" onclick="updateStatus('${r.id}', 'Chờ duyệt')">🟡 Chờ duyệt</div>`
+              ? `<div class="status-option" onclick="updateStatus('${r.id}', 'Đã duyệt')">✔️ Đã duyệt</div>`
+              : `<div class="status-option" onclick="updateStatus('${r.id}', 'Chờ duyệt')">⏳ Chờ duyệt</div>`
             }
           </div>
         </div>
@@ -480,11 +496,11 @@ function renderTable() {
       <td class="editable-cell" onclick="startInlineEdit(this, '${r.id}', 'muc_dich', 'text')">${r.muc_dich || '—'}</td>
       <td>
         <div class="action-group">
-          <button class="btn btn-sm btn-secondary btn-icon" title="Chỉnh sửa" onclick="openEditModal('${r.id}')">✏️</button>
-          <button class="btn btn-sm btn-danger btn-icon" title="Xóa" onclick="confirmDelete('${r.id}', '${(r.ten_hang||'').replace(/'/g,"\\'")}')">🗑️</button>
+          <button class="btn btn-sm btn-edit btn-icon" title="Chỉnh sửa" onclick="openEditModal('${r.id}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+          <button class="btn btn-sm btn-delete btn-icon" title="Xóa" onclick="confirmDelete('${r.id}', '${(r.ten_hang||'').replace(/'/g,"\\'")}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg></button>
         </div>
       </td>
-      <td style="text-align:center"><input type="checkbox" class="row-checkbox" data-id="${r.id}" title="Chọn mục này" onchange="updateSelectedCount()" /></td>
+      <td style="text-align:center; padding:0 !important;"><label class="checkbox-label-wrapper"><input type="checkbox" class="row-checkbox" data-id="${r.id}" title="Chọn mục này" onchange="updateSelectedCount()" /></label></td>
     </tr>`;
   }).join('');
 
@@ -608,7 +624,7 @@ async function bulkApprove() {
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.textContent = `🟢 Duyệt đã chọn (0)`;
+      btn.textContent = `✅ Duyệt đã chọn (0)`;
       btn.style.display = 'none';
     }
   }
@@ -640,7 +656,7 @@ async function bulkUnapprove() {
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.textContent = `🟡 Hủy duyệt đã chọn (0)`;
+      btn.textContent = `⏳ Hủy duyệt đã chọn (0)`;
       btn.style.display = 'none';
     }
   }
