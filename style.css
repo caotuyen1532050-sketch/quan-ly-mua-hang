@@ -1751,25 +1751,28 @@ textarea.form-control { resize: vertical; min-height: 80px; }
     margin-right: 4px !important;
   }
 
-  /* 13. Checkbox Select (Centered) */
+  /* 13. Checkbox Select (Bottom Left) */
   #page-list .data-table tbody tr:not(.empty-row) td:nth-child(13) {
-    grid-column: 1 / span 2 !important;
+    grid-column: 1 !important;
+    order: 12 !important;
     display: flex !important;
-    justify-content: center !important;
+    justify-content: flex-start !important;
     align-items: center !important;
-    padding: 8px 0 !important;
-    background: rgba(255, 255, 255, 0.02) !important;
-    border-radius: var(--radius-sm) !important;
-    border: 1px dashed var(--border) !important;
-    margin-top: 6px !important;
+    margin-top: 8px !important;
+    border-top: 1px solid var(--border) !important;
+    padding-top: 10px !important;
+    padding-bottom: 0 !important;
+    background: transparent !important;
+    border-radius: 0 !important;
+    border: none !important;
   }
   #page-list .data-table tbody tr:not(.empty-row) td:nth-child(13)::before {
-    content: "Chọn đơn hàng này" !important;
+    content: "CHỌN" !important;
     display: inline !important;
-    font-size: 12px !important;
+    font-size: 11px !important;
     font-weight: 700 !important;
-    color: var(--text-secondary) !important;
-    margin-right: 10px !important;
+    color: var(--text-muted) !important;
+    margin-right: 8px !important;
     margin-bottom: 0 !important;
   }
 
@@ -1873,9 +1876,10 @@ textarea.form-control { resize: vertical; min-height: 80px; }
     content: "Mục đích sử dụng" !important;
   }
 
-  /* 12. Hành Động */
+  /* 12. Hành Động (Bottom Right) */
   #page-list .data-table tbody tr:not(.empty-row) td:nth-child(12) {
-    grid-column: 1 / span 2 !important;
+    grid-column: 2 !important;
+    order: 13 !important;
     display: flex !important;
     justify-content: flex-end !important;
     align-items: center !important;
