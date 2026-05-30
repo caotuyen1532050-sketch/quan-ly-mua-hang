@@ -351,8 +351,8 @@ function renderCharts(pending, approved) {
         datasets: [{
           label: 'Số yêu cầu',
           data: values,
-          backgroundColor: 'rgba(56, 189, 248, 0.6)',
-          borderColor: '#38bdf8',
+          backgroundColor: 'rgba(16, 185, 129, 0.6)',
+          borderColor: '#10b981',
           borderWidth: 1,
           borderRadius: 6,
         }]
@@ -518,6 +518,30 @@ function updateSelectedCount() {
   const checkboxes = document.querySelectorAll('.row-checkbox:checked');
   const count = checkboxes.length;
   
+  // Calculate selected sum
+  let selectedSum = 0;
+  checkboxes.forEach(cb => {
+    const id = cb.dataset.id;
+    const r = allData.find(x => x.id === id);
+    if (r) {
+      selectedSum += (r.thanh_tien || 0);
+    }
+  });
+
+  // Update floating selected box
+  const floatBox = $('floatingSelectedBox');
+  const floatCount = $('floatingSelectedCount');
+  const floatAmount = $('floatingSelectedAmount');
+  if (floatBox && floatCount && floatAmount) {
+    if (count > 0) {
+      floatCount.textContent = count;
+      floatAmount.textContent = fmt(selectedSum);
+      floatBox.style.display = 'flex';
+    } else {
+      floatBox.style.display = 'none';
+    }
+  }
+  
   const btnApprove = $('btnBulkApprove');
   const countApprove = $('selectedCount');
   const btnUnapprove = $('btnBulkUnapprove');
@@ -580,6 +604,13 @@ function updateSelectedCount() {
   }
 
   updateSummaryTotals();
+}
+
+function scrollToBulkActions() {
+  const target = $('btnBulkApprove') || $('btnBulkUnapprove') || $('activeFiltersBar') || $('listTitleText');
+  if (target) {
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
 }
 
 function handleReqBoxClick() {
